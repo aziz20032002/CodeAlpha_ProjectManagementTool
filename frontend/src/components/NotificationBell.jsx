@@ -33,6 +33,7 @@ export default function NotificationBell() {
   const loadedRef = useRef(false);
   const countSyncing = useRef(false);
   const notificationDuringCountSync = useRef(false);
+  const bellAnimationTimer = useRef(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -41,6 +42,14 @@ export default function NotificationBell() {
   const [error, setError] = useState('');
   const [markingAll, setMarkingAll] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [bellAnimating, setBellAnimating] = useState(false);
+
+  useEffect(
+    () => () => {
+      if (bellAnimationTimer.current) clearTimeout(bellAnimationTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!user) {
@@ -99,6 +108,10 @@ export default function NotificationBell() {
       if (!notification.is_read) {
         setUnreadCount((count) => count + 1);
       }
+      if (bellAnimationTimer.current) clearTimeout(bellAnimationTimer.current);
+      setBellAnimating(false);
+      requestAnimationFrame(() => setBellAnimating(true));
+      bellAnimationTimer.current = setTimeout(() => setBellAnimating(false), 480);
     }
 
     socket.on('notification_created', handleNotificationCreated);
@@ -220,7 +233,7 @@ export default function NotificationBell() {
     <div className="notification-bell" ref={containerRef}>
       <button
         type="button"
-        className="notification-bell__trigger"
+        className={`notification-bell__trigger${bellAnimating ? ' notification-bell__trigger--received' : ''}`}
         onClick={togglePanel}
         aria-label="Notifications"
         aria-expanded={isOpen}
@@ -231,7 +244,7 @@ export default function NotificationBell() {
         </svg>
         {unreadCount > 0 && (
           <span
-            className="notification-bell__badge"
+            className={`notification-bell__badge${bellAnimating ? ' notification-bell__badge--received' : ''}`}
             aria-label={`${unreadCount} unread notifications`}
           >
             {unreadCount > 99 ? '99+' : unreadCount}
